@@ -6,15 +6,15 @@ from barrier import Barrier, Haystack
  
 pygame.init()
 
-time_step = 4000
+time_step = 3000
 pygame.time.set_timer(pygame.USEREVENT, time_step)
  
 W = 900
 H = 780
  
 sc = pygame.display.set_mode((W, H))
-pygame.display.set_caption("События от клавиатуры")
-# pygame.display.set_icon(pygame.image.load("app.bmp"))
+pygame.display.set_caption("Race")
+pygame.display.set_icon(pygame.image.load('images/racing-car.png'))
 
 
 FPS = 60
@@ -25,7 +25,12 @@ y = H // 2
 speed = 5
 car_speed = 5
 score = 0
+paused = False
 
+font = pygame.font.SysFont('arial', 30)
+
+game_score = pygame.image.load('images/table_score.png')
+game_score_rect = game_score.get_rect(topleft = (20, 20))
 field_stage1 = pygame.image.load('images/field.bmp')
 field_stage2 = pygame.image.load('images/field_stage2.jpg')
 road = pygame.image.load('images/road.jpg')
@@ -42,9 +47,9 @@ line_4 = pygame.draw.line(road, THECOLORS['white'], (460, 0), (460, 800), 5)
 line_down = pygame.draw.line(road, THECOLORS['white'], (0, 800), (900, 800), 5)
 
 
-balls = pygame.sprite.Group()
+barriers = pygame.sprite.Group()
 
-def createBall(group):
+def createBarrier(group):
     global score
     x = random.choice([W // 2 - 150, W // 2, W // 2 + 150])
     speed = 3
@@ -59,16 +64,23 @@ def createHaystack(group):
     return Haystack(x, speed, score, group)
 
 
-def collideBalls():
+def collideBarriers():
     global score
-    for ball in balls:
-        if line_down.collidepoint(ball.rect.center):
-            score += 5
-            ball.kill()
+    for barrier in barriers:
+        if line_down.collidepoint(barrier.rect.midbottom):
+            score += random.randint(3, 15)
+            
 
-paused = False
-createBall(balls)
-createBall(balls)
+def collideCar():
+    global score, paused
+    for barrier in barriers:
+        if car_rect.collidepoint(barrier.rect.center):
+            paused = True
+            barrier.kill()
+
+
+createBarrier(barriers)
+createBarrier(barriers)
 
 while True:
     for event in pygame.event.get():
@@ -76,11 +88,11 @@ while True:
             exit()
         elif event.type == pygame.USEREVENT:
             if score <= 20:
-                createBall(balls)
-                createBall(balls)
+                createBarrier(barriers)
+                createBarrier(barriers)
             elif score <= 250:
-                createHaystack(balls)
-                createHaystack(balls)
+                createHaystack(barriers)
+                createHaystack(barriers)
         elif event.type == pygame.KEYDOWN:
             if event.key == pygame.K_p:
                 paused = not paused
@@ -105,18 +117,21 @@ while True:
         if car_rect.y > 650:
             car_rect.y = 650
 
-
-    collideBalls()
+    collideCar()
+    collideBarriers()
 
     if score <= 20:
         sc.blit(field_stage2, (0 ,0))
     elif score <= 250:
         sc.blit(field_stage1, (0 ,0))
-
+    print(score)
     sc.blit(road, road_rect)
-    balls.draw(sc)
+    sc.blit(game_score, game_score_rect)
+    sc_text = font.render(str(score), 1, (94, 138, 14))
+    sc.blit(sc_text, (30, 40))
+    barriers.draw(sc)
     sc.blit(car, car_rect)
     pygame.display.update()
-    balls.update(H)
+    barriers.update(H)
     
     clock.tick(FPS)
